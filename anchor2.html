@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystery Case: Festival Secrets</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --card-bg: #161b26;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --text-light: #f1f5f9;
+            --text-dim: #94a3b8;
+            --border-glow: rgba(139, 92, 246, 0.3);
+            --correct-green: #10b981;
+            --wrong-red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.12) 0%, transparent 40%);
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 720px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7), 0 0 15px rgba(139, 92, 246, 0.2);
+            padding: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Top Bar & Header */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .detective-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            font-size: 0.95rem;
+        }
+
+        .timer-box {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+            color: #f59e0b;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, #a78bfa, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        header p {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        /* Step Progress Bar */
+        .stepper {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            position: relative;
+        }
+
+        .stepper::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+
+        .step-item {
+            position: relative;
+            z-index: 2;
+            background: var(--card-bg);
+            padding: 0 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .step-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #0f172a;
+            border: 2px solid #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            transition: all 0.3s;
+        }
+
+        .step-item.active .step-circle {
+            border-color: var(--accent-purple);
+            background: var(--accent-purple);
+            color: white;
+            box-shadow: 0 0 12px var(--accent-purple);
+        }
+
+        .step-item.completed .step-circle {
+            border-color: var(--correct-green);
+            background: var(--correct-green);
+            color: white;
+        }
+
+        .step-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .step-item.active .step-label {
+            color: var(--text-light);
+            font-weight: bold;
+        }
+
+        /* Sections */
+        .section {
+            display: none;
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* STEP 1: Flip Cards */
+        .grid-3d {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .flip-card {
+            background-color: transparent;
+            height: 120px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            border-radius: 12px;
+        }
+
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .flip-card-front {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            color: var(--accent-cyan);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .flip-card-front i {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: var(--accent-purple);
+        }
+
+        .flip-card-front h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .flip-card-front span {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 6px;
+        }
+
+        .flip-card-back {
+            background: linear-gradient(145deg, #2e1065, #1e1b4b);
+            color: white;
+            transform: rotateY(180deg);
+            border-color: var(--accent-purple);
+        }
+
+        .flip-card-back p {
+            font-size: 1.05rem;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .flip-card-back .audio-hint {
+            font-size: 0.75rem;
+            color: #a78bfa;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* STEP 2: Case File Decoding */
+        .case-file {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px dashed rgba(139, 92, 246, 0.4);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .case-item {
+            margin-bottom: 18px;
+            line-height: 1.7;
+            font-size: 0.98rem;
+            padding-bottom: 12px;
+            border-bottom: 1px dotted rgba(255,255,255,0.08);
+        }
+
+        .case-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        select.dark-select {
+            background: #090d16;
+            color: var(--accent-cyan);
+            border: 1px solid var(--accent-purple);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            outline: none;
+            cursor: pointer;
+            margin: 0 4px;
+            transition: all 0.2s;
+        }
+
+        select.dark-select.correct {
+            border-color: var(--correct-green);
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+        }
+
+        select.dark-select.incorrect {
+            border-color: var(--wrong-red);
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        /* STEP 3: Detective Investigation Quiz */
+        .quiz-box {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 14px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .quiz-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quiz-opt-btn {
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-light);
+            padding: 12px 16px;
+            border-radius: 10px;
+            text-align: left;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .quiz-opt-btn:hover {
+            border-color: var(--accent-cyan);
+            background: #334155;
+        }
+
+        .quiz-opt-btn.selected {
+            border-color: var(--accent-purple);
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .quiz-opt-btn.correct {
+            background: rgba(16, 185, 129, 0.25) !important;
+            border-color: var(--correct-green) !important;
+            color: #6ee7b7;
+        }
+
+        .quiz-opt-btn.wrong {
+            background: rgba(239, 68, 68, 0.25) !important;
+            border-color: var(--wrong-red) !important;
+            color: #fca5a5;
+        }
+
+        .enter-hint {
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+            margin-top: 10px;
+            text-align: right;
+        }
+
+        /* Buttons */
+        .btn-box {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, var(--accent-purple), #6d28d9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(109, 40, 217, 0.4);
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(109, 40, 217, 0.6);
+        }
+
+        .secondary-btn {
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .secondary-btn:hover {
+            background: #475569;
+        }
+
+        /* Result View */
+        .result-card {
+            text-align: center;
+            padding: 24px 20px;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 16px;
+            border: 1px solid var(--accent-purple);
+        }
+
+        .rank-icon {
+            font-size: 3rem;
+            color: var(--accent-cyan);
+            margin-bottom: 8px;
+            text-shadow: 0 0 15px var(--accent-cyan);
+        }
+
+        .score-display {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: white;
+            margin: 4px 0;
+        }
+
+        .rank-title {
+            font-size: 1.1rem;
+            color: #a78bfa;
+            font-weight: bold;
+            margin-bottom: 14px;
+        }
+
+        /* Batch Review Board */
+        .review-board {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: left;
+            max-height: 230px;
+            overflow-y: auto;
+        }
+
+        .review-board h4 {
+            color: var(--accent-cyan);
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: sticky;
+            top: 0;
+            background: #0f172a;
+            padding: 4px 0;
+        }
+
+        .review-item {
+            background: #1e293b;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 3px solid var(--accent-purple);
+        }
+
+        .review-item .vocab-info b {
+            color: #a78bfa;
+            font-size: 0.95rem;
+        }
+
+        .review-item .vocab-info span {
+            color: var(--text-dim);
+            font-size: 0.82rem;
+            margin-left: 8px;
+        }
+
+        .listen-btn {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--accent-cyan);
+            border: 1px solid var(--accent-purple);
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .listen-btn:hover {
+            background: var(--accent-purple);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="detective-badge">
+            <i class="fa-solid fa-user-secret"></i>
+            <span>AGENT MISSIONS</span>
+        </div>
+        <div class="timer-box">
+            <i class="fa-regular fa-clock"></i>
+            <span id="timer">10:00</span>
+        </div>
+    </div>
+
+    <header>
+        <h1>FESTIVAL MYSTERY CASE</h1>
+        <p>수사관님, 비밀을 해독하고 6개의 암호 표현을 완성하십시오.</p>
+    </header>
+
+    <!-- Stepper -->
+    <div class="stepper">
+        <div class="step-item active" id="st-1">
+            <div class="step-circle">1</div>
+            <div class="step-label">암호 분석</div>
+        </div>
+        <div class="step-item" id="st-2">
+            <div class="step-circle">2</div>
+            <div class="step-label">문서 복원</div>
+        </div>
+        <div class="step-item" id="st-3">
+            <div class="step-circle">3</div>
+            <div class="step-label">현장 검증</div>
+        </div>
+        <div class="step-item" id="st-4">
+            <div class="step-circle">4</div>
+            <div class="step-label">최종 보고</div>
+        </div>
+    </div>
+
+    <!-- STEP 1: Flip Cards -->
+    <div class="section active" id="sec-1">
+        <p style="margin-bottom: 16px; font-size: 0.9rem; color: var(--text-dim); text-align: center;">
+            <i class="fa-solid fa-hand-pointer"></i> 카드를 클릭하여 <b>단어 해독</b> 및 <b>음성 발음</b>을 확인하세요.
+        </p>
+        <div class="grid-3d">
+            <div class="flip-card" onclick="toggleCard(this, 'in charge of')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fa-solid fa-lock"></i>
+                        <h3>in charge of</h3>
+                        <span>[클릭하여 해독]</span>
+                    </div>
+                    <div class="flip-card-back">
+                        <p>~을 맡고 있는, 책임지는</p>
+                        <div class="audio-hint"><i class="fa-solid fa-volume-high"></i> Listening...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card" onclick="toggleCard(this, 'take part in')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fa-solid fa-lock"></i>
+                        <h3>take part in</h3>
+                        <span>[클릭하여 해독]</span>
+                    </div>
+                    <div class="flip-card-back">
+                        <p>~에 참여하다</p>
+                        <div class="audio-hint"><i class="fa-solid fa-volume-high"></i> Listening...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card" onclick="toggleCard(this, 'figure out')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fa-solid fa-lock"></i>
+                        <h3>figure out</h3>
+                        <span>[클릭하여 해독]</span>
+                    </div>
+                    <div class="flip-card-back">
+                        <p>알아내다, 해결하다</p>
+                        <div class="audio-hint"><i class="fa-solid fa-volume-high"></i> Listening...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card" onclick="toggleCard(this, 'work on')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fa-solid fa-lock"></i>
+                        <h3>work on</h3>
+                        <span>[클릭하여 해독]</span>
+                    </div>
+                    <div class="flip-card-back">
+                        <p>~에 공을 들이다, 작업하다</p>
+                        <div class="audio-hint"><i class="fa-solid fa-volume-high"></i> Listening...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card" onclick="toggleCard(this, 'cut down on')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fa-solid fa-lock"></i>
+                        <h3>cut down on</h3>
+                        <span>[클릭하여 해독]</span>
+                    </div>
+                    <div class="flip-card-back">
+                        <p>~을 줄이다</p>
+                        <div class="audio-hint"><i class="fa-solid fa-volume-high"></i> Listening...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card" onclick="toggleCard(this, 'make a difference')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <i class="fa-solid fa-lock"></i>
+                        <h3>make a difference</h3>
+                        <span>[클릭하여 해독]</span>
+                    </div>
+                    <div class="flip-card-back">
+                        <p>변화를 가져오다, 영향을 주다</p>
+                        <div class="audio-hint"><i class="fa-solid fa-volume-high"></i> Listening...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="btn-box">
+            <button class="action-btn" onclick="goStep(2)">2단계 문서 복원으로 이동 <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- STEP 2: Decode Case File -->
+    <div class="section" id="sec-2">
+        <div class="case-file">
+            <div class="case-item">
+                1. Mina is 
+                <select class="dark-select" id="c1">
+                    <option value="">[선택]</option>
+                    <option value="in charge of">in charge of</option>
+                    <option value="take part in">take part in</option>
+                    <option value="work on">work on</option>
+                </select>
+                the English booth.
+            </div>
+            <div class="case-item">
+                2. She asked everyone to 
+                <select class="dark-select" id="c2">
+                    <option value="">[선택]</option>
+                    <option value="cut down on">cut down on</option>
+                    <option value="take part in">take part in</option>
+                    <option value="make a difference">make a difference</option>
+                </select>
+                a short quiz game.
+            </div>
+            <div class="case-item">
+                3. At first, the team could not 
+                <select class="dark-select" id="c3">
+                    <option value="">[선택]</option>
+                    <option value="figure out">figure out</option>
+                    <option value="in charge of">in charge of</option>
+                    <option value="cut down on">cut down on</option>
+                </select>
+                how to make it fun.
+            </div>
+            <div class="case-item">
+                4. They decided to 
+                <select class="dark-select" id="c4">
+                    <option value="">[선택]</option>
+                    <option value="make a difference">make a difference</option>
+                    <option value="work on">work on</option>
+                    <option value="take part in">take part in</option>
+                </select>
+                a mystery theme.
+            </div>
+            <div class="case-item">
+                5. They decided to 
+                <select class="dark-select" id="c5">
+                    <option value="">[선택]</option>
+                    <option value="cut down on">cut down on</option>
+                    <option value="figure out">figure out</option>
+                    <option value="in charge of">in charge of</option>
+                </select>
+                long instructions.
+            </div>
+            <div class="case-item">
+                6. These changes will 
+                <select class="dark-select" id="c6">
+                    <option value="">[선택]</option>
+                    <option value="work on">work on</option>
+                    <option value="take part in">take part in</option>
+                    <option value="make a difference">make a difference</option>
+                </select>
+                for the visitors.
+            </div>
+        </div>
+        <div class="btn-box">
+            <button class="action-btn" onclick="verifyStep2()">문서 검증하기 <i class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+    </div>
+
+    <!-- STEP 3: Field Investigation Quiz -->
+    <div class="section" id="sec-3">
+        <div id="quiz-mount"></div>
+        <div class="enter-hint">💡 TIP: <b>Enter 키</b>를 누르면 정답 제출 및 다음 문제로 바로 진행됩니다.</div>
+        <div class="btn-box">
+            <button class="action-btn" id="quiz-btn" onclick="handleQuizAction()">단서 제출 <i class="fa-solid fa-key"></i></button>
+        </div>
+    </div>
+
+    <!-- STEP 4: Final Investigation Report -->
+    <div class="section" id="sec-4">
+        <div class="result-card">
+            <div class="rank-icon" id="rank-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <h2>수사 완료 보고서</h2>
+            <div class="score-display" id="total-score">0 / 12</div>
+            <div class="rank-title" id="rank-title">탐정 등급 산정 중...</div>
+            
+            <!-- Batch Review Board (한꺼번에 복습 가능한 전체 어휘 보드) -->
+            <div class="review-board">
+                <h4><i class="fa-solid fa-book-bookmark"></i> 종합 수사 노트 (6대 핵심 표현 일괄 복습)</h4>
+                <div class="review-item">
+                    <div class="vocab-info"><b>in charge of</b> <span>~을 맡고 있는, 책임지는</span></div>
+                    <button class="listen-btn" onclick="speakWord('in charge of')"><i class="fa-solid fa-volume-high"></i> 듣기</button>
+                </div>
+                <div class="review-item">
+                    <div class="vocab-info"><b>take part in</b> <span>~에 참여하다</span></div>
+                    <button class="listen-btn" onclick="speakWord('take part in')"><i class="fa-solid fa-volume-high"></i> 듣기</button>
+                </div>
+                <div class="review-item">
+                    <div class="vocab-info"><b>figure out</b> <span>알아내다, 해결하다</span></div>
+                    <button class="listen-btn" onclick="speakWord('figure out')"><i class="fa-solid fa-volume-high"></i> 듣기</button>
+                </div>
+                <div class="review-item">
+                    <div class="vocab-info"><b>work on</b> <span>~에 공을 들이다, 작업하다</span></div>
+                    <button class="listen-btn" onclick="speakWord('work on')"><i class="fa-solid fa-volume-high"></i> 듣기</button>
+                </div>
+                <div class="review-item">
+                    <div class="vocab-info"><b>cut down on</b> <span>~을 줄이다</span></div>
+                    <button class="listen-btn" onclick="speakWord('cut down on')"><i class="fa-solid fa-volume-high"></i> 듣기</button>
+                </div>
+                <div class="review-item">
+                    <div class="vocab-info"><b>make a difference</b> <span>변화를 가져오다, 영향을 주다</span></div>
+                    <button class="listen-btn" onclick="speakWord('make a difference')"><i class="fa-solid fa-volume-high"></i> 듣기</button>
+                </div>
+            </div>
+
+            <div class="btn-box" style="justify-content: center;">
+                <button class="secondary-btn" onclick="goStep(1)">
+                    <i class="fa-solid fa-arrow-rotate-left"></i> 1단계 암호 카드로 돌아가기
+                </button>
+                <button class="action-btn" onclick="location.reload()">
+                    <i class="fa-solid fa-rotate-right"></i> 처음부터 다시하기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentStep = 1;
+    let step2Score = 0;
+    let step3Score = 0;
+    let currentQuizIdx = 0;
+    let selectedOpt = null;
+    let isQuizEvaluated = false;
+    let timeLeft = 600; // 10 minutes
+    let currentUtterance = null;
+
+    // Timer logic
+    const timerInterval = setInterval(() => {
+        timeLeft--;
+        let min = Math.floor(timeLeft / 60);
+        let sec = timeLeft % 60;
+        document.getElementById('timer').innerText = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            alert("수사 시간이 종료되었습니다! 결과 창으로 이동합니다.");
+            goStep(4);
+        }
+    }, 1000);
+
+    // 앞부분 끊김 현상(클리핑/생성 딜레이)이 완벽히 해결된 TTS 발음 함수
+    function speakWord(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // 이전 재생 큐 강제 초기화
+            
+            // 짧은 지연 후 실행하여 브라우저 오디오 엔진이 준비되도록 함
+            setTimeout(() => {
+                currentUtterance = new SpeechSynthesisUtterance(text);
+                currentUtterance.lang = 'en-US';
+                currentUtterance.rate = 0.8; // 조금 더 차분하고 또렷한 속도
+                currentUtterance.pitch = 1.0;
+                
+                // 일부 브라우저 초기 음절 씹힘 방지를 위한 빈 더미 재생 선행 후 실제 음성 출력
+                window.speechSynthesis.speak(currentUtterance);
+            }, 50);
+        }
+    }
+
+    function toggleCard(cardEl, word) {
+        cardEl.classList.toggle('flipped');
+        if (cardEl.classList.contains('flipped')) {
+            speakWord(word);
+        }
+    }
+
+    const correctStep2 = {
+        c1: "in charge of",
+        c2: "take part in",
+        c3: "figure out",
+        c4: "work on",
+        c5: "cut down on",
+        c6: "make a difference"
+    };
+
+    const quizData = [
+        {
+            q: "CASE #1: 누군가 부스의 총책임자 역할을 맡아야 합니다.<br><i>'Who is __________ this booth design?'</i>",
+            opts: ["cut down on", "in charge of", "work on"],
+            ans: 1
+        },
+        {
+            q: "CASE #2: 용의자가 부스 축제 활동에 직접 참여했다고 진술했습니다.<br><i>'He decided to __________ the escape room game.'</i>",
+            opts: ["take part in", "figure out", "make a difference"],
+            ans: 0
+        },
+        {
+            q: "CASE #3: 비밀 번호 암호를 풀어내야 다음 방으로 갈 수 있습니다.<br><i>'We need to __________ the secret code.'</i>",
+            opts: ["cut down on", "work on", "figure out"],
+            ans: 2
+        },
+        {
+            q: "CASE #4: 불필요한 단서나 가짜 힌트를 줄여야 합니다.<br><i>'We should __________ useless clues.'</i>",
+            opts: ["cut down on", "take part in", "in charge of"],
+            ans: 0
+        },
+        {
+            q: "CASE #5: 우리의 팀워크가 단서 해결에 결정적 변화를 만들었습니다.<br><i>'Our teamwork can __________ in this case.'</i>",
+            opts: ["figure out", "make a difference", "work on"],
+            ans: 1
+        },
+        {
+            q: "CASE #6: 사건의 남은 핵심 증거를 계속 조사 및 작업 중입니다.<br><i>'Detectives are still __________ the case.'</i>",
+            opts: ["working on", "taking part in", "cutting down on"],
+            ans: 0
+        }
+    ];
+
+    // Global Keydown Listener for 'Enter'
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' && currentStep === 3) {
+            handleQuizAction();
+        }
+    });
+
+    function goStep(step) {
+        currentStep = step;
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.step-item').forEach((st, idx) => {
+            if (idx + 1 < step) {
+                st.classList.add('completed');
+                st.classList.remove('active');
+            } else if (idx + 1 === step) {
+                st.classList.add('active');
+                st.classList.remove('completed');
+            } else {
+                st.classList.remove('active', 'completed');
+            }
+        });
+
+        document.getElementById(`sec-${step}`).classList.add('active');
+
+        if (step === 3) renderQuiz();
+        if (step === 4) showFinalReport();
+    }
+
+    function verifyStep2() {
+        let allValid = true;
+        let count = 0;
+
+        for (let key in correctStep2) {
+            const el = document.getElementById(key);
+            if (!el.value) allValid = false;
+        }
+
+        if (!allValid) {
+            alert("모든 빈칸에 알맞은 암호를 선택해 주세요.");
+            return;
+        }
+
+        for (let key in correctStep2) {
+            const el = document.getElementById(key);
+            if (el.value === correctStep2[key]) {
+                el.className = "dark-select correct";
+                count++;
+            } else {
+                el.className = "dark-select incorrect";
+            }
+        }
+
+        step2Score = count;
+        setTimeout(() => {
+            alert(`문서 복원 완료! [정답: ${count} / 6]`);
+            goStep(3);
+        }, 400);
+    }
+
+    function renderQuiz() {
+        isQuizEvaluated = false;
+        selectedOpt = null;
+        const q = quizData[currentQuizIdx];
+        const container = document.getElementById('quiz-mount');
+
+        let html = `
+            <div class="quiz-box">
+                <div class="quiz-title">${q.q}</div>
+                <div class="quiz-options">
+        `;
+
+        q.opts.forEach((opt, idx) => {
+            html += `
+                <button class="quiz-opt-btn" onclick="selectQuizOpt(${idx})" id="qopt-${idx}">
+                    <span>${opt}</span>
+                    <i class="fa-regular fa-circle"></i>
+                </button>
+            `;
+        });
+
+        html += `</div></div>`;
+        container.innerHTML = html;
+
+        const btn = document.getElementById('quiz-btn');
+        btn.innerHTML = `단서 제출 <i class="fa-solid fa-key"></i>`;
+    }
+
+    function selectQuizOpt(idx) {
+        if (isQuizEvaluated) return;
+        selectedOpt = idx;
+        document.querySelectorAll('.quiz-opt-btn').forEach((btn, i) => {
+            if (i === idx) {
+                btn.classList.add('selected');
+                btn.querySelector('i').className = "fa-solid fa-circle-check";
+            } else {
+                btn.classList.remove('selected');
+                btn.querySelector('i').className = "fa-regular fa-circle";
+            }
+        });
+    }
+
+    function handleQuizAction() {
+        if (!isQuizEvaluated) {
+            if (selectedOpt === null) {
+                alert("단서 답안을 선택해 주세요!");
+                return;
+            }
+
+            isQuizEvaluated = true;
+            const q = quizData[currentQuizIdx];
+            if (selectedOpt === q.ans) step3Score++;
+
+            document.querySelectorAll('.quiz-opt-btn').forEach((btn, i) => {
+                if (i === q.ans) {
+                    btn.classList.add('correct');
+                } else if (i === selectedOpt) {
+                    btn.classList.add('wrong');
+                }
+            });
+
+            const btn = document.getElementById('quiz-btn');
+            if (currentQuizIdx < quizData.length - 1) {
+                btn.innerHTML = `다음 사건 현장 (Enter) <i class="fa-solid fa-arrow-right"></i>`;
+            } else {
+                btn.innerHTML = `수사 보고서 작성 (Enter) <i class="fa-solid fa-file-signature"></i>`;
+            }
+        } else {
+            if (currentQuizIdx < quizData.length - 1) {
+                currentQuizIdx++;
+                renderQuiz();
+            } else {
+                goStep(4);
+            }
+        }
+    }
+
+    function showFinalReport() {
+        clearInterval(timerInterval);
+        const total = step2Score + step3Score;
+        document.getElementById('total-score').innerText = `${total} / 12`;
+
+        const rankIcon = document.getElementById('rank-icon');
+        const rankTitle = document.getElementById('rank-title');
+
+        if (total === 12) {
+            rankIcon.innerHTML = `<i class="fa-solid fa-crown" style="color: #f59e0b;"></i>`;
+            rankTitle.innerText = "S급 수석 명탐정 (Sherlock Level)";
+        } else if (total >= 8) {
+            rankIcon.innerHTML = `<i class="fa-solid fa-user-ninja" style="color: #a78bfa;"></i>`;
+            rankTitle.innerText = "A급 베테랑 수사관 (Senior Detective)";
+        } else if (total >= 5) {
+            rankIcon.innerHTML = `<i class="fa-solid fa-user-secret" style="color: #22d3ee;"></i>`;
+            rankTitle.innerText = "B급 정식 수사관 (Junior Detective)";
+        } else {
+            rankIcon.innerHTML = `<i class="fa-solid fa-magnifying-glass" style="color: #ef4444;"></i>`;
+            rankTitle.innerText = "견습 수사관 (Apprentice)";
+        }
+    }
+</script>
+</body>
+</html>
